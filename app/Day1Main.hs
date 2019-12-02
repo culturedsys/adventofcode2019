@@ -5,5 +5,5 @@ import Lib (execute)
 
 main :: IO ()
 main = do
-    execute result "day1.txt"
-    execute resultWithFuel "day1.txt"
+    execute result lines "day1.txt"
+    execute resultWithFuel lines "day1.txt"
