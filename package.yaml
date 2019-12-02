@@ -23,6 +23,11 @@ dependencies:
 - base >= 4.7 && < 5
 - hspec
 - filepath
+- containers
+- mtl
+- sort
+- monad-loops
+- split
 
 library:
   source-dirs: src
@@ -39,6 +44,17 @@ executables:
     dependencies:
     - adventofcode2019
 
+  day2:
+    main:                Day2Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -main-is Day2Main
+    dependencies:
+    - adventofcode2019
+
 tests:
   day1-test:
     main:                Day1Spec.hs
@@ -51,3 +67,13 @@ tests:
     dependencies:
     - adventofcode2019
     
+  day2-test:
+    main:                Day2Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -main-is Day2Spec
+    dependencies:
+    - adventofcode2019
