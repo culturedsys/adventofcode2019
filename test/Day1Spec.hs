@@ -1,3 +1,5 @@
+module Day1Spec where
+
 import Test.Hspec
 import Day1(fuelRequirement, fuelRequirementWithFuel, result)
 
