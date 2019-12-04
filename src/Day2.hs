@@ -106,9 +106,7 @@ result input = executeProgram input 12 2
 executeProgram :: [Int] -> Int -> Int -> Either Error Int
 executeProgram input noun verb =
     let program = (head input) : [noun, verb] ++ (drop 3 input) in
-        case execute program of
-            Left error -> Left error
-            Right finalState -> Right $ head finalState
+        head <$> execute program
 
 
 searchPrograms :: [Int] -> Int -> [(Int, Int)]
