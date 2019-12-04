@@ -4,8 +4,7 @@ module Lib (
 
 import System.FilePath ((</>))
 
-execute :: (Read a, Show b) => ([a] -> b) -> (String -> [String]) -> String -> IO ()
-execute result splitter fileName = do
-    lines <- splitter <$> readFile ("input" </> fileName)
-    let input = map read lines
-    putStrLn .show $  result input
+execute :: (Show b) => (a -> b) -> (String -> a) -> String -> IO ()
+execute result parser fileName = do
+    parsed <- parser <$> readFile ("input" </> fileName)
+    putStrLn .show $ result parsed

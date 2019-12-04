@@ -1,4 +1,5 @@
 module Day2 (
+    parser,
     execute,
     result,
     result2,
@@ -12,6 +13,7 @@ import Control.Monad.Except
 import Control.Monad.Loops
 import Data.Sort (sortOn)
 import Debug.Trace
+import Data.List.Split (splitOn)
 
 type Addr = Int
 
@@ -120,3 +122,6 @@ searchPrograms input target = do
 
 result2 :: Int -> [Int] -> (Int, Int)
 result2 target input = head $ searchPrograms input target
+
+parser :: String -> [Int]
+parser = map read . (splitOn ",")

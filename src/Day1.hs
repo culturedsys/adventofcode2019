@@ -1,9 +1,13 @@
 module Day1 (
+    parser,
     fuelRequirement,
     fuelRequirementWithFuel,
     result,
     resultWithFuel
 ) where
+
+parser :: String -> [Integer]
+parser = map read . lines
 
 fuelRequirement :: Integer -> Integer
 fuelRequirement mass = (mass `div` 3) - 2 
