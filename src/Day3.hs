@@ -1,7 +1,8 @@
 module Day3 (
     Direction (..),
-    closestIntersection
-,
+    Point (..),
+    closestIntersection,
+    shortestIntersection,
     pointsOnPath,
     parser
 ) where
@@ -9,6 +10,7 @@ module Day3 (
 import qualified Data.Set as S
 import Data.List (sort)
 import Data.List.Split (splitOn)
+import Data.Maybe (fromJust)
 
 data Direction = R Int | D Int | L Int | U Int
 
@@ -18,17 +20,24 @@ getLen (D x) = x
 getLen (L x) = x
 getLen (U x) = x
 
+data Point = Point Int Int Int deriving (Show)
 
-type Points = S.Set (Int, Int)
+instance Eq Point where
+    (Point x1 y1 _) == (Point x2 y2 _) = x1 == x2 && y1 == y2 
 
-move :: Direction -> (Int, Int) -> (Int, Int)
-move (R _) (x, y) = (x + 1, y)
-move (D _) (x, y) = (x, y - 1)
-move (L _) (x, y) = (x - 1, y)
-move (U _) (x, y) = (x, y + 1)
+instance Ord Point where
+    compare (Point x1 y1 _) (Point x2 y2 _) = compare (x1, y1) (x2, y2)
+
+type Points = S.Set Point
+
+move :: Direction -> Point -> Point
+move (R _) (Point x y c) = Point (x + 1) y (c + 1)
+move (D _) (Point x y c) = Point x (y - 1) (c + 1)
+move (L _) (Point x y c) = Point (x - 1) y (c + 1)
+move (U _) (Point x  y c) = Point x (y + 1) (c + 1)
 
 
-addSteps :: (Points, (Int, Int)) -> Direction -> (Points, (Int, Int))
+addSteps :: (Points, Point) -> Direction -> (Points, Point)
 addSteps (acc, origin) direction = 
     let len = getLen direction
         points = take len . tail $ iterate (move direction) origin
@@ -39,20 +48,44 @@ addSteps (acc, origin) direction =
 
 pointsOnPath :: [Direction] -> Points
 pointsOnPath path = 
-    fst $ foldl addSteps (S.empty, (0, 0)) path
+    fst $ foldl addSteps (S.empty, Point 0 0 0) path
 
 
-manhattanDistance :: (Int, Int) -> Int
-manhattanDistance (x, y) = (abs x) + (abs y) 
+manhattanDistance :: Point -> Int
+manhattanDistance (Point x y _) = (abs x) + (abs y) 
+
+intersectionsOf :: [Direction] -> [Direction] -> Points
+intersectionsOf path1 path2 =
+    let points1 = pointsOnPath path1
+        points2 = pointsOnPath path2
+      in
+        S.intersection points1 points2
 
 
 closestIntersection :: [Direction] -> [Direction] -> Int
 closestIntersection path1 path2 =
+    let intersections = intersectionsOf path1 path2
+    in
+        head . sort . map manhattanDistance $ S.toList intersections
+
+
+lookupS :: Ord a => a -> S.Set a -> Maybe a
+lookupS target set = do
+    result <- S.lookupGE target set
+    if result == target then return result else Nothing
+
+
+shortestIntersection :: [Direction] -> [Direction] -> Int
+shortestIntersection path1 path2 = 
     let points1 = pointsOnPath path1
         points2 = pointsOnPath path2
         intersections = S.intersection points1 points2
-    in
-        head . sort . map manhattanDistance $ S.toList intersections
+        combinedDistance point = fromJust $ do
+            Point x y count1 <- lookupS point points1
+            Point _ _ count2 <- lookupS point points2
+            return (count1 + count2) 
+      in
+        head . sort . S.toList $ S.map combinedDistance intersections
 
 
 parseDirection :: String -> Direction
