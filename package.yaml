@@ -66,6 +66,17 @@ executables:
     dependencies:
     - adventofcode2019
 
+  day4:
+    main:                Day4Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -main-is Day4Main
+    dependencies:
+    - adventofcode2019
+
 
 tests:
   day1-test:
@@ -98,5 +109,16 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     - -main-is Day3Spec
+    dependencies:
+    - adventofcode2019
+
+  day4-test:
+    main:                Day4Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -main-is Day4Spec
     dependencies:
     - adventofcode2019
