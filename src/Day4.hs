@@ -1,42 +1,34 @@
-{-# LANGUAGE ScopedTypeVariables #-}
-
 module Day4 (
-    check, check2, result, result2
+    check, twoOrMore, exactlyTwo, result, result2
 ) where
 
 import Data.List (groupBy)
 import Debug.Trace
 
+checkNotDescending Nothing _ = True
+checkNotDescending (Just previous) group = previous <= (head group)
 
-check :: Int -> Bool
-check value = hasPair && notDescending
+
+twoOrMore group = (length group) >= 2
+
+
+exactlyTwo group = (length group) == 2
+
+
+check :: ([Int] -> Bool) -> Int -> Bool
+check groupCondition value = hasPair && notDescending
   where
     (_, hasPair, notDescending) = foldl (\(previous, hasPair, notDescending) group -> 
-        (Just $ head group, hasPair || (length group) >= 2, notDescending && (checkNotDescending previous group)))
+        (Just $ head group, hasPair || groupCondition group, notDescending && (checkNotDescending previous group)))
         (Nothing, False, True) groups
     groups = groupBy (==) (reverse $ splitDigits value)
     splitDigits x | x < 10 = [x]
     splitDigits x = (x `mod` 10) : (splitDigits (x `div` 10))
-    checkNotDescending Nothing _ = True
-    checkNotDescending (Just previous) group = previous <= (head group)
-    
+
 
 result :: [Int] -> Int
-result = length . filter check
+result = length . filter (check twoOrMore)
 
-
-check2 :: Int -> Bool
-check2 value = hasPair && notDescending
-  where
-    (_, hasPair, notDescending) = foldl (\(previous, hasPair, notDescending) group -> 
-        (Just $ head group, hasPair || (length group) == 2, notDescending && (checkNotDescending previous group)))
-        (Nothing, False, True) groups
-    groups = groupBy (==) (reverse $ splitDigits value)
-    splitDigits x | x < 10 = [x]
-    splitDigits x = (x `mod` 10) : (splitDigits (x `div` 10))
-    checkNotDescending Nothing _ = True
-    checkNotDescending (Just previous) group = previous <= (head group)
-    
 
 result2 :: [Int] -> Int
-result2 = length . filter check2
+result2 = length . filter (check exactlyTwo)
