@@ -1,5 +1,6 @@
 module IntCode (
     execute,
+    executeWithIo,
     loadMemory,
     dumpMemory,
     Error
@@ -22,9 +23,19 @@ instance Show Error where
     show (OutOfBounds pc value) = "Out of bounds: " ++ (show value) ++ " at " ++ (show pc)
     show (BadOpCode pc value) = "Bad opcode: " ++ (show value) ++ " at " ++ (show pc)
 
-type Machine a = StateT (Memory, Int) (Except Error) a
+data MachineState = MS {
+    getMemory :: Memory,
+    getPc :: Addr,
+    getInput :: [Int],
+    getOutput :: [Int]
+}
+
+
+type Machine a = StateT MachineState (Except Error) a
 
 data Status = Continue | Halt
+
+data OpCode = Add | Mul | Hlt | Inp | Out
 
 
 isContinue :: Status -> Bool
@@ -34,44 +45,77 @@ isContinue _ = False
 
 load :: Addr -> Machine Int
 load addr = do
-    (memory, pc) <- get
+    memory <- getMemory <$> get
+    pc <- getPc <$> get
     case M.lookup addr memory of
         Nothing -> throwError $ OutOfBounds pc addr
         Just value -> return value
 
 
 store :: Addr -> Int -> Machine ()
-store addr value= do
-    (memory, pc) <- get
-    put (M.insert addr value memory, pc)    
+store addr value = 
+    modify (\ ms -> ms { getMemory = M.insert addr value (getMemory ms)})
+
+
+operand :: Addr -> Machine Int
+operand addr = load =<< load addr
 
 
 performOperation :: (Int -> Int -> Int) -> Machine ()
 performOperation operation = do
-    (_, pc) <- get
-    left <- load =<< load (pc + 1)
-    right <- load =<< load (pc + 2)
+    pc <- getPc <$> get
+    left <- operand (pc + 1)
+    right <- operand (pc + 2)
     destination <- load (pc + 3)
 
     store destination (operation left right)
 
-    
-advanceOperation :: Machine ()
-advanceOperation = modify (\ (memory, pc) -> (memory, pc + 4))
 
+performInput :: Machine ()
+performInput = do
+    pc <- getPc <$> get
+    dest <- load (pc + 1)
+    input <- getInput <$> get
+
+    store dest (head input)
+    modify (\ms -> ms { getInput = tail input})
+
+
+performOutput :: Machine ()
+performOutput = do
+    pc <- getPc <$> get
+    source <- operand (pc + 1)
+    
+    modify (\ms -> ms { getOutput = source : (getOutput ms)})
+
+    
+advanceOperation :: Int -> Machine ()
+advanceOperation size = modify (\ ms -> ms { getPc = (getPc ms) + size })
+
+
+decode :: Int -> Maybe (OpCode, Int)
+decode 1 = Just (Add, 4)
+decode 2 = Just (Mul, 4)
+decode 3 = Just (Inp, 2)
+decode 4 = Just (Out, 2)
+decode 99 = Just (Hlt, 1)
+decode _ = Nothing
 
 executeOperation :: Machine Status
 executeOperation = do
-    (_, pc) <- get
+    pc <- getPc <$> get
     opcode <- load pc
 
-    result <- case opcode of
-            1 -> performOperation (+) >> return Continue
-            2 -> performOperation (*) >> return Continue
-            99 -> return Halt
-            _ -> throwError $ BadOpCode pc opcode
+    (op, size) <- maybe (throwError $ BadOpCode pc opcode) return (decode opcode) 
+
+    result <- case op of
+            Add -> performOperation (+) >> return Continue
+            Mul -> performOperation (*) >> return Continue
+            Inp -> performInput >> return Continue
+            Out -> performOutput >> return Continue
+            Hlt -> return Halt
     
-    advanceOperation
+    advanceOperation size
     return result
 
 
@@ -89,8 +133,13 @@ execute' = do
     return ()
 
 
+runMachine :: [Int] -> [Int] -> Either Error MachineState
+runMachine program input = runExcept $ execStateT execute' (MS (loadMemory program) 0 input [])
+
+
 execute :: [Int] -> Either Error [Int]
-execute input = 
-    case runExcept $ execStateT execute' (loadMemory input, 0) of
-        Right (finalMemory, _) -> Right $ dumpMemory finalMemory
-        Left error -> Left error
+execute program = dumpMemory <$> getMemory <$> runMachine program []
+
+
+executeWithIo :: [Int] -> [Int] -> Either Error [Int]
+executeWithIo program input = reverse <$> getOutput <$> runMachine program input
