@@ -79,6 +79,17 @@ executables:
 
 
 tests:
+  intcode-test:
+    main:                IntCodeSpec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -main-is IntCodeSpec
+    dependencies:
+    - adventofcode2019
+
   day1-test:
     main:                Day1Spec.hs
     source-dirs:         test
