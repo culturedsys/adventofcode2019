@@ -1,23 +1,14 @@
 name:                adventofcode2019
 version:             0.1.0.0
-github:              "githubuser/adventofcode2019"
-license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2019 Author name here"
+github:              "culturedsys/adventofcode2019"
+license:             GPL-3
+author:              "Tim Fisken"
+maintainer:          "contact@timfisken.org"
+copyright:           "2019 Tim Fisken"
 
 extra-source-files:
 - README.md
-- ChangeLog.md
-
-# Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
-
-# To avoid duplicated efforts in documentation and dealing with the
-# complications of embedding Haddock markup inside cabal files, it is
-# common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/githubuser/adventofcode2019#readme>
+- LICENSE
 
 dependencies:
 - base >= 4.7 && < 5
@@ -29,107 +20,85 @@ dependencies:
 - monad-loops
 - split
 
+ghc-options:
+- -threaded
+- -rtsopts
+- -with-rtsopts=-N
+
 library:
   source-dirs: src
 
 executables:
   day1:
-    main:                Day1Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day1Main
-    dependencies:
+    main: Day1Main.hs
+    source-dirs: app
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day1Main
 
   day2:
-    main:                Day2Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day2Main
-    dependencies:
+    main: Day2Main.hs
+    source-dirs: app
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day2Main
   
   day3:
-    main:                Day3Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day3Main
-    dependencies:
+    main: Day3Main.hs
+    source-dirs: app
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day3Main
 
   day4:
-    main:                Day4Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day4Main
-    dependencies:
+    main: Day4Main.hs
+    source-dirs: app
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day4Main
 
 
 tests:
   intcode-test:
-    main:                IntCodeSpec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is IntCodeSpec
-    dependencies:
+    main: IntCodeSpec.hs
+    source-dirs: test
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is IntCodeSpec
 
   day1-test:
-    main:                Day1Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day1Spec
-    dependencies:
+    main: Day1Spec.hs
+    source-dirs: test
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day1Spec
     
   day2-test:
-    main:                Day2Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day2Spec
-    dependencies:
+    main: Day2Spec.hs
+    source-dirs: test
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day2Spec
 
   day3-test:
-    main:                Day3Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day3Spec
-    dependencies:
+    main: Day3Spec.hs
+    source-dirs: test
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day3Spec
 
   day4-test:
-    main:                Day4Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -main-is Day4Spec
-    dependencies:
+    main: Day4Spec.hs
+    source-dirs: test
+    dependencies: 
     - adventofcode2019
+    ghc-options:
+    - -main-is Day4Spec
