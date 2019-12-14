@@ -85,6 +85,7 @@ performOperation (leftMode, rightMode) operation = do
     destination <- load (pc + 3)
 
     store destination (operation left right)
+    advanceOperation 4
 
 
 performInput :: Machine ()
@@ -95,6 +96,7 @@ performInput = do
 
     store dest (head input)
     modify (\ms -> ms { getInput = tail input})
+    advanceOperation 2
 
 
 performOutput :: Mode -> Machine ()
@@ -103,6 +105,7 @@ performOutput mode = do
     source <- operand mode (pc + 1)
     
     modify (\ms -> ms { getOutput = source : (getOutput ms)})
+    advanceOperation 2
 
 
 performJump :: (Mode, Mode) -> (Int -> Bool) -> Machine ()
@@ -111,7 +114,10 @@ performJump (comparisandMode, destMode) pred = do
     comparisand <- operand comparisandMode (pc + 1)
     dest <- operand destMode (pc + 2)
     
-    when (pred comparisand) (modify (\ms -> ms { getPc = dest - 3 })) -- subtract the size of the current instruction, which will be incremented later
+    if (pred comparisand) then 
+        modify (\ms -> ms { getPc = dest })
+    else
+        advanceOperation 3
 
 
 advanceOperation :: Int -> Machine ()
@@ -124,17 +130,17 @@ mode position instruction = case (instruction `div` (10 ^ (2 + position))) `mod`
     1 -> Immediate
 
 
-decode :: Int -> Maybe (OpCode, Int)
+decode :: Int -> Maybe OpCode
 decode instruction = case instruction `mod` 100 of
-    1 -> Just (Add (mode 0 instruction, mode 1 instruction), 4)
-    2 -> Just (Mul (mode 0 instruction, mode 1 instruction), 4)
-    3 -> Just (Inp, 2)
-    4 -> Just (Out (mode 0 instruction), 2)
-    5 -> Just (Jnz (mode 0 instruction, mode 1 instruction), 3)
-    6 -> Just (Jz (mode 0 instruction, mode 1 instruction), 3)
-    7 -> Just (Lt (mode 0 instruction, mode 1 instruction), 4)
-    8 -> Just (Eql (mode 0 instruction, mode 1 instruction), 4)
-    99 -> Just (Hlt, 1)
+    1 -> Just (Add (mode 0 instruction, mode 1 instruction))
+    2 -> Just (Mul (mode 0 instruction, mode 1 instruction))
+    3 -> Just Inp
+    4 -> Just (Out (mode 0 instruction))
+    5 -> Just (Jnz (mode 0 instruction, mode 1 instruction))
+    6 -> Just (Jz (mode 0 instruction, mode 1 instruction))
+    7 -> Just (Lt (mode 0 instruction, mode 1 instruction))
+    8 -> Just (Eql (mode 0 instruction, mode 1 instruction))
+    99 -> Just Hlt
     _ -> Nothing
 
 
@@ -143,7 +149,7 @@ executeOperation = do
     pc <- getPc <$> get
     opcode <- load pc
 
-    (op, size) <- maybe (throwError $ BadOpCode pc opcode) return (decode opcode) 
+    op <- maybe (throwError $ BadOpCode pc opcode) return (decode opcode) 
 
     result <- case op of
             Add modes -> performOperation modes (+) >> return Continue
@@ -156,7 +162,6 @@ executeOperation = do
             Eql modes -> performOperation modes (comparison (==)) >> return Continue
             Hlt -> return Halt
     
-    advanceOperation size
     return result
 
 
