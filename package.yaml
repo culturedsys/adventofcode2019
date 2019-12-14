@@ -62,6 +62,14 @@ executables:
     ghc-options:
     - -main-is Day4Main
 
+  day5:
+    main: Day5Main.hs
+    source-dirs: app
+    dependencies: 
+    - adventofcode2019
+    ghc-options:
+    - -main-is Day5Main
+
 
 tests:
   intcode-test:

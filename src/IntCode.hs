@@ -35,7 +35,18 @@ type Machine a = StateT MachineState (Except Error) a
 
 data Status = Continue | Halt
 
-data OpCode = Add | Mul | Hlt | Inp | Out
+data Mode = Position | Immediate
+
+data OpCode = 
+    Add (Mode, Mode) | 
+    Mul (Mode, Mode) | 
+    Hlt | 
+    Inp | 
+    Out Mode |
+    Jz (Mode, Mode) |
+    Jnz (Mode, Mode) |
+    Lt (Mode, Mode) |
+    Eql (Mode, Mode)
 
 
 isContinue :: Status -> Bool
@@ -57,15 +68,20 @@ store addr value =
     modify (\ ms -> ms { getMemory = M.insert addr value (getMemory ms)})
 
 
-operand :: Addr -> Machine Int
-operand addr = load =<< load addr
+operand :: Mode -> Addr -> Machine Int
+operand Position addr = load =<< load addr
+operand Immediate addr = load addr
 
 
-performOperation :: (Int -> Int -> Int) -> Machine ()
-performOperation operation = do
+comparison :: (Int -> Int -> Bool) -> Int -> Int -> Int
+comparison op left right = if op left right then 1 else 0
+
+
+performOperation :: (Mode, Mode) -> (Int -> Int -> Int) -> Machine ()
+performOperation (leftMode, rightMode) operation = do
     pc <- getPc <$> get
-    left <- operand (pc + 1)
-    right <- operand (pc + 2)
+    left <- operand leftMode (pc + 1)
+    right <- operand rightMode (pc + 2)
     destination <- load (pc + 3)
 
     store destination (operation left right)
@@ -81,25 +97,46 @@ performInput = do
     modify (\ms -> ms { getInput = tail input})
 
 
-performOutput :: Machine ()
-performOutput = do
+performOutput :: Mode -> Machine ()
+performOutput mode = do
     pc <- getPc <$> get
-    source <- operand (pc + 1)
+    source <- operand mode (pc + 1)
     
     modify (\ms -> ms { getOutput = source : (getOutput ms)})
 
+
+performJump :: (Mode, Mode) -> (Int -> Bool) -> Machine ()
+performJump (comparisandMode, destMode) pred = do
+    pc <- getPc <$> get
+    comparisand <- operand comparisandMode (pc + 1)
+    dest <- operand destMode (pc + 2)
     
+    when (pred comparisand) (modify (\ms -> ms { getPc = dest - 3 })) -- subtract the size of the current instruction, which will be incremented later
+
+
 advanceOperation :: Int -> Machine ()
 advanceOperation size = modify (\ ms -> ms { getPc = (getPc ms) + size })
 
 
+mode :: Int -> Int -> Mode
+mode position instruction = case (instruction `div` (10 ^ (2 + position))) `mod` 10 of
+    0 -> Position
+    1 -> Immediate
+
+
 decode :: Int -> Maybe (OpCode, Int)
-decode 1 = Just (Add, 4)
-decode 2 = Just (Mul, 4)
-decode 3 = Just (Inp, 2)
-decode 4 = Just (Out, 2)
-decode 99 = Just (Hlt, 1)
-decode _ = Nothing
+decode instruction = case instruction `mod` 100 of
+    1 -> Just (Add (mode 0 instruction, mode 1 instruction), 4)
+    2 -> Just (Mul (mode 0 instruction, mode 1 instruction), 4)
+    3 -> Just (Inp, 2)
+    4 -> Just (Out (mode 0 instruction), 2)
+    5 -> Just (Jnz (mode 0 instruction, mode 1 instruction), 3)
+    6 -> Just (Jz (mode 0 instruction, mode 1 instruction), 3)
+    7 -> Just (Lt (mode 0 instruction, mode 1 instruction), 4)
+    8 -> Just (Eql (mode 0 instruction, mode 1 instruction), 4)
+    99 -> Just (Hlt, 1)
+    _ -> Nothing
+
 
 executeOperation :: Machine Status
 executeOperation = do
@@ -109,10 +146,14 @@ executeOperation = do
     (op, size) <- maybe (throwError $ BadOpCode pc opcode) return (decode opcode) 
 
     result <- case op of
-            Add -> performOperation (+) >> return Continue
-            Mul -> performOperation (*) >> return Continue
+            Add modes -> performOperation modes (+) >> return Continue
+            Mul modes -> performOperation modes (*) >> return Continue
             Inp -> performInput >> return Continue
-            Out -> performOutput >> return Continue
+            Out mode -> performOutput mode >> return Continue
+            Jnz modes -> performJump modes (/= 0) >> return Continue
+            Jz modes -> performJump modes (== 0) >> return Continue
+            Lt modes -> performOperation modes (comparison (<)) >> return Continue
+            Eql modes -> performOperation modes (comparison (==)) >> return Continue
             Hlt -> return Halt
     
     advanceOperation size
