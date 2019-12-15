@@ -26,9 +26,9 @@ main = hspec $ do
                     Tree "D" [Tree "E" [], Tree "F" []]
                 ]) `shouldBe` 10
 
-    describe "result" $ do
+    describe "orbitCountChecksum" $ do
         it "should pass case 1" $ do
-            result [
+            orbitCountChecksum [
                     ("COM", "B"),
                     ("B", "C"),
                     ("C", "D"),
@@ -41,3 +41,25 @@ main = hspec $ do
                     ("J", "K"),
                     ("K", "L")
                 ] `shouldBe` 42
+
+    describe "findPath" $ do
+        it "should find a short path" $ do
+            findPath "B" (Tree "A" [Tree "B" []]) `shouldBe` ["A"]
+
+    describe "orbitalTransfers" $ do
+        it "should pass case 1" $ do
+            orbitalTransfers "SAN" "YOU" [
+                    ("COM", "B"),
+                    ("B", "C"),
+                    ("C", "D"),
+                    ("D", "E"),
+                    ("E", "F"),
+                    ("B", "G"),
+                    ("G", "H"),
+                    ("D", "I"),
+                    ("E", "J"),
+                    ("J", "K"),
+                    ("K", "L"),
+                    ("K", "YOU"),
+                    ("I", "SAN")
+                ] `shouldBe` 4

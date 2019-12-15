@@ -4,4 +4,6 @@ import Day6
 import Lib
 
 
-main = execute result parse "day6.txt"
+main = do
+    execute orbitCountChecksum parse "day6.txt"
+    execute (orbitalTransfers "SAN" "YOU") parse "day6.txt"
