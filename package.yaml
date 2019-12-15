@@ -20,6 +20,7 @@ dependencies:
 - monad-loops
 - split
 - QuickCheck
+- multimap
 
 ghc-options:
 - -threaded
@@ -70,6 +71,14 @@ executables:
     ghc-options:
     - -main-is Day5Main
 
+  day6:
+    main: Day6Main.hs
+    source-dirs: app
+    dependencies: 
+    - adventofcode2019
+    ghc-options:
+    - -main-is Day6Main
+
 
 tests:
   intcode-test:
@@ -111,3 +120,11 @@ tests:
     - adventofcode2019
     ghc-options:
     - -main-is Day4Spec
+
+  day6-test:
+    main: Day6Spec.hs
+    source-dirs: test
+    dependencies:
+    - adventofcode2019
+    ghc-options:
+    - -main-is Day6Spec
