@@ -4,7 +4,7 @@ import Data.List.Split
 import IntCode
 
 result :: Int -> [Int] -> Either Error [Int]
-result id program = executeWithIo program [id]
+result id program = executeWithFixedIo program [id]
 
 
 parse :: String -> [Int]

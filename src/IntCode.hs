@@ -1,6 +1,6 @@
 module IntCode (
     execute,
-    executeWithIo,
+    executeWithFixedIo,
     loadMemory,
     dumpMemory,
     Error
@@ -23,15 +23,16 @@ instance Show Error where
     show (OutOfBounds pc value) = "Out of bounds: " ++ (show value) ++ " at " ++ (show pc)
     show (BadOpCode pc value) = "Bad opcode: " ++ (show value) ++ " at " ++ (show pc)
 
-data MachineState = MS {
+data MachineState w = MS {
     getMemory :: Memory,
     getPc :: Addr,
-    getInput :: [Int],
-    getOutput :: [Int]
+    getInput :: w -> (w, Int),
+    getOutput :: w -> Int -> w,
+    getWorld :: w
 }
 
 
-type Machine a = StateT MachineState (Except Error) a
+type Machine w a = StateT (MachineState w) (Except Error) a
 
 data Status = Continue | Halt
 
@@ -54,7 +55,7 @@ isContinue Continue = True
 isContinue _ = False
 
 
-load :: Addr -> Machine Int
+load :: Addr -> Machine w Int
 load addr = do
     memory <- getMemory <$> get
     pc <- getPc <$> get
@@ -63,12 +64,12 @@ load addr = do
         Just value -> return value
 
 
-store :: Addr -> Int -> Machine ()
+store :: Addr -> Int -> Machine w ()
 store addr value = 
     modify (\ ms -> ms { getMemory = M.insert addr value (getMemory ms)})
 
 
-operand :: Mode -> Addr -> Machine Int
+operand :: Mode -> Addr -> Machine w Int
 operand Position addr = load =<< load addr
 operand Immediate addr = load addr
 
@@ -77,7 +78,7 @@ comparison :: (Int -> Int -> Bool) -> Int -> Int -> Int
 comparison op left right = if op left right then 1 else 0
 
 
-performOperation :: (Mode, Mode) -> (Int -> Int -> Int) -> Machine ()
+performOperation :: (Mode, Mode) -> (Int -> Int -> Int) -> Machine w ()
 performOperation (leftMode, rightMode) operation = do
     pc <- getPc <$> get
     left <- operand leftMode (pc + 1)
@@ -88,27 +89,34 @@ performOperation (leftMode, rightMode) operation = do
     advanceOperation 4
 
 
-performInput :: Machine ()
+performInput :: Machine w ()
 performInput = do
     pc <- getPc <$> get
     dest <- load (pc + 1)
     input <- getInput <$> get
+    world <- getWorld <$> get
 
-    store dest (head input)
-    modify (\ms -> ms { getInput = tail input})
+    let (newWorld, value) = input world
+
+    store dest value
+    modify (\ms -> ms {getWorld = newWorld})
     advanceOperation 2
 
 
-performOutput :: Mode -> Machine ()
+performOutput :: Mode -> Machine w ()
 performOutput mode = do
     pc <- getPc <$> get
     source <- operand mode (pc + 1)
-    
-    modify (\ms -> ms { getOutput = source : (getOutput ms)})
+    output <- getOutput <$> get
+    world <- getWorld <$> get
+
+    let newWorld = output world source
+
+    modify (\ms -> ms { getWorld = newWorld})
     advanceOperation 2
 
 
-performJump :: (Mode, Mode) -> (Int -> Bool) -> Machine ()
+performJump :: (Mode, Mode) -> (Int -> Bool) -> Machine w ()
 performJump (comparisandMode, destMode) pred = do
     pc <- getPc <$> get
     comparisand <- operand comparisandMode (pc + 1)
@@ -120,7 +128,7 @@ performJump (comparisandMode, destMode) pred = do
         advanceOperation 3
 
 
-advanceOperation :: Int -> Machine ()
+advanceOperation :: Int -> Machine w ()
 advanceOperation size = modify (\ ms -> ms { getPc = (getPc ms) + size })
 
 
@@ -144,7 +152,7 @@ decode instruction = case instruction `mod` 100 of
     _ -> Nothing
 
 
-executeOperation :: Machine Status
+executeOperation :: Machine w Status
 executeOperation = do
     pc <- getPc <$> get
     opcode <- load pc
@@ -173,19 +181,33 @@ loadMemory :: [Int] -> Memory
 loadMemory source = M.fromList $ zip [0..] source 
     
 
-execute' :: Machine ()
+execute' :: Machine w ()
 execute' = do 
     iterateWhile isContinue executeOperation
     return ()
 
 
-runMachine :: [Int] -> [Int] -> Either Error MachineState
-runMachine program input = runExcept $ execStateT execute' (MS (loadMemory program) 0 input [])
+runMachine :: [Int] -> (w -> (w, Int)) -> (w -> Int -> w) -> w -> Either Error (MachineState w)
+runMachine program input output world = runExcept $ execStateT execute' (MS (loadMemory program) 0 input output world)
+
+
+listInput :: ([Int], [Int]) -> (([Int], [Int]), Int)
+listInput (input, output) = ((tail input, output), head input)
+
+
+listOutput :: ([Int], [Int]) -> Int -> ([Int], [Int])
+listOutput (input, output) value = (input, value : output)
 
 
 execute :: [Int] -> Either Error [Int]
-execute program = dumpMemory <$> getMemory <$> runMachine program []
+execute program = dumpMemory <$> getMemory <$> runMachine program listInput listOutput ([], [])
 
 
-executeWithIo :: [Int] -> [Int] -> Either Error [Int]
-executeWithIo program input = reverse <$> getOutput <$> runMachine program input
+executeWithIo :: [Int] -> (w -> (w, Int)) -> (w -> Int -> w) -> w -> Either Error w
+executeWithIo program doInput doOutput world = 
+    getWorld <$> runMachine program doInput doOutput world
+
+    
+executeWithFixedIo :: [Int] -> [Int] -> Either Error [Int]
+executeWithFixedIo program input = 
+    reverse <$> snd <$> executeWithIo program listInput listOutput (input, [])
