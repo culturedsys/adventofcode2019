@@ -9,6 +9,7 @@ module IntCode (
 import qualified Data.Map as M
 import Control.Monad.State.Strict
 import Control.Monad.Except
+import Control.Monad.Identity
 import Control.Monad.Loops (iterateWhile)
 import Data.Sort (sortOn)
 
@@ -199,9 +200,17 @@ listOutput value = do
     modify (\(input, output) -> (input, value : output)) 
 
 
+noInput :: Identity Int
+noInput = error "No input available"
+
+
+noOutput :: Int -> Identity ()
+noOutput = error "No output available"
+
+
 execute :: [Int] -> Either Error [Int]
 execute program = 
-    let result = evalState (runMachine program listInput listOutput) ([], [])
+    let result = runIdentity (runMachine program noInput noOutput)
       in dumpMemory . getMemory <$> result
 
     
